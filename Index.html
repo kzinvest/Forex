@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Forex Demo App</title>
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#000;color:#fff;}
+.card{background:#111;padding:40px;border-radius:15px;width:350px;box-shadow:0 0 20px rgba(255,255,255,0.1);text-align:center;margin:auto;margin-top:50px;}
+input{width:100%;padding:12px;margin:10px 0;border-radius:10px;border:1px solid #fff;background:#000;color:#fff;font-size:16px;}
+input:focus{outline:none;border-color:#0f0;}
+button{width:100%;padding:15px;margin-top:20px;border-radius:10px;border:none;background:#0f0;color:#000;font-size:18px;cursor:pointer;transition:.3s;}
+button:hover{background:#0c0;}
+a{color:#0f0;text-decoration:none;cursor:pointer;}
+#painelPrincipal{display:none;text-align:center;padding:20px;position:relative;}
+#saldo{font-size:20px;margin-bottom:10px;}
+#grafico{margin:20px auto;width:95%;height:600px;border-radius:15px;background:#111;display:flex;justify-content:center;align-items:center;font-size:24px;color:#0f0;}
+#rodape{position:fixed;bottom:0;width:100%;display:flex;justify-content:space-around;padding:15px;background:#111;}
+#rodape button{width:45%;}
+#topo{position:relative;padding:15px;display:flex;justify-content:flex-end;align-items:center;}
+#menu{position:absolute;top:50px;right:15px;background:#111;padding:10px;border-radius:15px;display:none;flex-direction:column;box-shadow:0 0 15px rgba(255,255,255,0.2);}
+#menu button{width:180px;margin:5px;padding:12px;font-size:16px;border-radius:10px;transition:.3s;border:none;cursor:pointer;}
+#menu button:hover{opacity:.8;}
+#menu #dep{background:#0f0;color:#000;}
+#menu #ret{background:#f00;color:#fff;}
+#menu #hist{background:#00f;color:#fff;}
+#historicoLista{max-height:200px;overflow-y:auto;text-align:left;margin:10px 20px;}
+</style>
+</head>
+<body>
+
+<div class="card" id="telaCadastro">
+<h1>Crie sua conta</h1>
+<input type="text" id="nome" placeholder="Nome completo"/>
+<input type="email" id="email" placeholder="Email"/>
+<input type="password" id="senha" placeholder="Senha"/>
+<button onclick="cadastrar()">Cadastrar</button>
+<p>Já tem conta? <a onclick="irLogin()">Login</a></p>
+</div>
+
+<div class="card" id="telaLogin" style="display:none;">
+<h1>Login</h1>
+<input type="email" id="emailLogin" placeholder="Email"/>
+<input type="password" id="senhaLogin" placeholder="Senha"/>
+<button onclick="login()">Entrar</button>
+<p>Não tem conta? <a onclick="irCadastro()">Cadastrar</a></p>
+</div>
+
+<div id="painelPrincipal">
+<div id="topo">
+<span style="margin-right:10px;font-size:24px;cursor:pointer;" onclick="toggleMenu()">•••</span>
+<div id="menu">
+<button id="dep" onclick="depositar()">Depósito</button>
+<button id="ret" onclick="retirar()">Retirada</button>
+<button id="hist" onclick="mostrarHistorico()">Histórico</button>
+</div>
+</div>
+<div id="saldo">Saldo: 0 USDT</div>
+<h2>Bem-vindo, <span id="usuarioNome"></span>!</h2>
+<div id="grafico"></div>
+<div id="rodape">
+<button onclick="trade('SELL')">SELL</button>
+<button onclick="trade('BUY')">BUY</button>
+</div>
+<div id="historicoLista" style="display:none;"></div>
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+let usuarios=[],saldoUsuario=0,historico=[],usuarioAtual=null;
+function toggleMenu(){let m=document.getElementById("menu");m.style.display=m.style.display==="flex"?"none":"flex";}
+function cadastrar(){
+ let n=document.getElementById("nome").value.trim(),e=document.getElementById("email").value.trim(),s=document.getElementById("senha").value.trim();
+ if(!n||!e||!s){alert("Preencha todos os campos");return;}
+ if(usuarios.find(u=>u.email===e)){alert("Email já cadastrado");return;}
+ usuarios.push({nome:n,email:e,senha:s,saldo:0});
+ alert("Cadastro realizado! Faça login.");irLogin();
+}
+function login(){
+ let e=document.getElementById("emailLogin").value.trim(),s=document.getElementById("senhaLogin").value.trim();
+ let u=usuarios.find(x=>x.email===e&&x.senha===s);
+ if(!u){alert("Email ou senha incorretos");return;}
+ usuarioAtual=u;
+ saldoUsuario=u.saldo;
+ document.getElementById("telaLogin").style.display="none";
+ document.getElementById("telaCadastro").style.display="none";
+ document.getElementById("painelPrincipal").style.display="block";
+ document.getElementById("usuarioNome").innerText=u.nome;
+ atualizarSaldo();
+}
+function irLogin(){document.getElementById("telaCadastro").style.display="none";document.getElementById("telaLogin").style.display="block";}
+function irCadastro(){document.getElementById("telaLogin").style.display="none";document.getElementById("telaCadastro").style.display="block";}
+function atualizarSaldo(){document.getElementById("saldo").innerText="Saldo: "+saldoUsuario.toFixed(2)+" USDT";if(usuarioAtual)usuarioAtual.saldo=saldoUsuario;}
+function trade(t){if(saldoUsuario<=0){alert("Saldo insuficiente! Faça depósito para operar.");return;}let v=100;if(v>saldoUsuario){alert("Saldo insuficiente!");return;}saldoUsuario-=v;let g=Math.random()>0.5;if(g)saldoUsuario+=v*1.8;historico.push({tipo:t,valor:v,result:g?"GANHOU":"PERDEU"});atualizarSaldo();alert(t+" executado! "+(g?"GANHOU":"PERDEU"));}
+function depositar(){let valor=parseFloat(prompt("Digite o valor do depósito:"));if(valor>0){saldoUsuario+=valor;historico.push({tipo:"Depósito",valor:valor,result:"Concluído"});atualizarSaldo();alert("Depósito concluído!");}else{alert("Valor inválido!");}}
+function retirar(){if(saldoUsuario<=0){alert("Saldo insuficiente!");return;}let end=prompt("Digite o endereço da carteira:"),val=parseFloat(prompt("Digite o valor:")),rede=prompt("Digite a rede:");if(end&&val&&rede){if(val>saldoUsuario){alert("Saldo insuficiente!");return;}saldoUsuario-=val;historico.push({tipo:"Retirada",valor:val,result:"Concluído",endereco:end,rede:rede});atualizarSaldo();alert("Retirada concluída! Valor enviado para "+end+" na rede "+rede);}}
+function mostrarHistorico(){let h=document.getElementById("historicoLista");h.style.display=h.style.display==="block"?"none":"block";h.innerHTML="<h3>Histórico de Operações:</h3>";historico.slice().reverse().forEach(o=>{if(o.tipo=="Retirada"||o.tipo=="Depósito"){h.innerHTML+=`<div>${o.tipo} | Valor: ${o.valor} ${o.rede? "| Rede: "+o.rede:""} ${o.endereco? "| Endereço: "+o.endereco:""}</div>`;}else{h.innerHTML+=`<div>${o.tipo} | Valor: ${o.valor} | ${o.result}</div>`;}});}
+new TradingView.widget({"container_id":"grafico","width":"100%","height":"600","symbol":"EURUSD","interval":"5","timezone":"Etc/UTC","theme":"dark","style":"1","locale":"pt","toolbar_bg":"#111","enable_publishing":false,"hide_top_toolbar":true,"hide_legend":true});
+</script>
+
+</body>
+  </html>
